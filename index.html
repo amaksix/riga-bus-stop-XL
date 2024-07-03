@@ -7,21 +7,21 @@
   </head>
   <body style="text-align: center">
     <canvas id="unity-canvas" style="width: 100%; height: 600px; background: transparent"></canvas>
-    <script src="Build/newBuilderFolder.loader.js"></script>
+    <script src="Build/webGlBuild.loader.js"></script>
     <script>
       const eventCustom = new Event("build");
       var messagesFromShopify = new Array();
       createUnityInstance(document.querySelector("#unity-canvas"), {
-        dataUrl: "Build/newBuilderFolder.data",
-        frameworkUrl: "Build/newBuilderFolder.framework.js",
-        codeUrl: "Build/newBuilderFolder.wasm",
+        dataUrl: "Build/webGlBuild.data",
+        frameworkUrl: "Build/webGlBuild.framework.js",
+        codeUrl: "Build/webGlBuild.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "New Unity Project",
         productVersion: "0.1",
       }).then((unityInstance) => {
     window.unityInstance = unityInstance;
-    console.log("Unity Instance", unityInstance);
+    //console.log("Unity Instance", unityInstance);
     //document.dispatchEvent(eventCustom);
     for (let i = 0; i < messagesFromShopify.length; i++) {
         const messageType = messagesFromShopify[i];
