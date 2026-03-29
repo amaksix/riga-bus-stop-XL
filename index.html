@@ -6,11 +6,30 @@
     <title>Unity WebGL Player | New Unity Project</title>
   </head>
   <body style="text-align: center">
-    <canvas id="unity-canvas" style="width: 100%; height: 600px; background: #ffffff"></canvas>
+    <canvas id="unity-canvas" style="width: 100%; height: 600px; background: transparent"></canvas>
     <script src="Build/webGlBuild.loader.js"></script>
-    <script>
+   <script>
       const eventCustom = new Event("build");
-      var messagesFromShopify = new Array();
+      var messagesFromShopify = new Array(); 
+      
+      function sendToUnity(type, messageState) {
+          let state = (messageState === "false" || messageState === false) ? "false" : "true";
+          
+          try {
+              switch (type) {
+                  case "Map": window.unityInstance.SendMessage('4 Glass long', 'MapFromJs', state); break;
+                  case "InnerScreen": window.unityInstance.SendMessage('4 Glass long', 'InnerScreenFromJs', state); break;
+                  case "OuterScreen": window.unityInstance.SendMessage('4 Glass long', 'OuterScreenFromJs', state); break;
+                  case "InnerSideScreen": window.unityInstance.SendMessage('4 Glass long', 'InnerSideScreenFromJs', state); break;
+                  case "OuterSideScreen": window.unityInstance.SendMessage('4 Glass long', 'OuterSideScreenFromJs', state); break;
+                  case "BusSchedule": window.unityInstance.SendMessage('4 Glass long', 'BusScheduleFromJs', state); break;
+                  case "Silluete": window.unityInstance.SendMessage('4 Glass long', 'SillueteFromJs', state); break;
+                  default: break;
+              }
+          } catch (error) {
+          }
+      }
+
       createUnityInstance(document.querySelector("#unity-canvas"), {
         dataUrl: "Build/webGlBuild.data",
         frameworkUrl: "Build/webGlBuild.framework.js",
@@ -20,70 +39,24 @@
         productName: "New Unity Project",
         productVersion: "0.1",
       }).then((unityInstance) => {
-    window.unityInstance = unityInstance;
-    //console.log("Unity Instance", unityInstance);
-    //document.dispatchEvent(eventCustom);
-    for (let i = 0; i < messagesFromShopify.length; i++) {
-        const messageType = messagesFromShopify[i];
-        switch (messageType) {
-            case "Map":
-                window.unityInstance.SendMessage('4 Glass long', 'MapFromJs');
-                break;
-            case "InnerScreen":
-                window.unityInstance.SendMessage('4 Glass long', 'InnerScreenFromJs');
-                break;
-            case "OuterScreen":
-                window.unityInstance.SendMessage('4 Glass long', 'OuterScreenFromJs');
-                break;
-            case "InnerSideScreen":
-                window.unityInstance.SendMessage('4 Glass long', 'InnerSideScreenFromJs');
-                break;
-            case "OuterSideScreen":
-                window.unityInstance.SendMessage('4 Glass long', 'OuterSideScreenFromJs');
-                break;
-            case "BusSchedule":
-                window.unityInstance.SendMessage('4 Glass long', 'BusScheduleFromJs');
-                break;
-            case "Silluete":
-                window.unityInstance.SendMessage('4 Glass long', 'SillueteFromJs');
-                break;
-            // Add more cases for additional message types if needed
-            default:
-                // Handle unknown message types, if necessary
-                break;
+        window.unityInstance = unityInstance;
+        
+        for (let i = 0; i < messagesFromShopify.length; i++) {
+            sendToUnity(messagesFromShopify[i].type, messagesFromShopify[i].message);
         }
-    }
-   });
-    window.addEventListener("message", function(event) {
-      if( window.unityInstance === undefined) {
-        messagesFromShopify.push(event.data.type);
-      }
-      else
-      {
-         if (event.data.type === "Map") {       
-          window.unityInstance.SendMessage('4 Glass long', 'MapFromJs');
-         }
-         if (event.data.type === "InnerScreen") {
-            window.unityInstance.SendMessage('4 Glass long', 'InnerScreenFromJs');
-         }
-         if (event.data.type === "OuterScreen") {
-            window.unityInstance.SendMessage('4 Glass long', 'OuterScreenFromJs');
-         }
-         if (event.data.type === "InnerSideScreen") {
-            window.unityInstance.SendMessage('4 Glass long', 'InnerSideScreenFromJs');
-         }
-         if (event.data.type === "OuterSideScreen") {
-            window.unityInstance.SendMessage('4 Glass long', 'OuterSideScreenFromJs');
-         }
-         if (event.data.type === "BusSchedule") {
-            window.unityInstance.SendMessage('4 Glass long', 'BusScheduleFromJs');
-         }
-         if (event.data.type === "Silluete") {
-            window.unityInstance.SendMessage('4 Glass long', 'SillueteFromJs');
-         }
-      }
-     
-   });
+        messagesFromShopify = [];
+      }).catch((err) => {
+      });
+
+      window.addEventListener("message", function(event) {
+          if (!event.data || !event.data.type) return;
+
+          if (window.unityInstance === undefined) {
+              messagesFromShopify.push({ type: event.data.type, message: event.data.message });
+          } else {
+              sendToUnity(event.data.type, event.data.message);
+          }
+      });
     </script>
   </body>
 </html>
