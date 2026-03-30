@@ -47,7 +47,6 @@
         }
         messagesFromShopify = [];
 
-        // 🚀 NEW: Tell the parent window (Shopify) that Unity is fully loaded!
         window.parent.postMessage({ type: "UNITY_READY" }, "*");
 
     }).catch((err) => {
