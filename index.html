@@ -1,105 +1,307 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head>
+<head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        http-equiv="Content-Type"
+        content="text/html; charset=utf-8"
+    >
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Unity WebGL Player | Bus Shelter RIGA XL-Size</title>
 
     <style>
-      html,
-      body {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: transparent;
-      }
-
-      #unity-canvas {
-        display: block;
-        width: 100%;
-        height: 600px;
-        background: transparent;
-      }
-    </style>
-  </head>
-
-  <body>
-    <canvas id="unity-canvas"></canvas>
-
-    <!-- Adjust file path to match your M-Size build loader -->
-    <script src="Build/riga-bus-stop-XL.loader.js"></script>
-
-    <script>
-      (function () {
-        "use strict";
-
-        const UNITY_TARGET_OBJECT = "4 Glass long";
-
-        const METHOD_BY_TYPE = {
-          RearDisplay: "RearDisplayFromJs",
-          SideDisplay: "SideDisplayFromJs",
-          SideGlass: "SideGlassFromJs",
-          PosterFrame: "PosterFrameFromJs",
-          StandingBench: "StandingBenchFromJs",
-          Silluete: "SillueteFromJs"
-        };
-
-        const queuedMessages = [];
-        let unityInstance;
-
-        function sendToUnity(type, message) {
-          const method = METHOD_BY_TYPE[type];
-          if (!method || !unityInstance) return;
-
-          try {
-            unityInstance.SendMessage(UNITY_TARGET_OBJECT, method, String(message));
-          } catch (error) {
-            console.error("Could not send " + type + " to Unity:", error);
-          }
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
         }
 
-        window.addEventListener("message", function (event) {
-          if (event.source !== window.parent || !event.data || !METHOD_BY_TYPE[event.data.type]) {
+        #unity-canvas {
+            display: block;
+            width: 100%;
+            height: 600px;
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="unity-canvas"></canvas>
+
+<!-- Adjust file path to match your XL-Size build loader -->
+<script src="Build/riga-bus-stop-XL.loader.js"></script>
+
+<script>
+(function () {
+    "use strict";
+
+    /*
+     * ============================================================
+     * DISPLAY / RENDERING QUALITY
+     * ============================================================
+     *
+     * We deliberately do NOT manually set canvas.width / canvas.height.
+     *
+     * Unity will manage the WebGL drawing-buffer resolution through:
+     *
+     *     matchWebGLToCanvasSize: true
+     *     devicePixelRatio: optimalDPR
+     *
+     * 1.25 is a good quality/performance compromise.
+     *
+     * Rendering at DPR 2 can require roughly 4x as many pixels
+     * as DPR 1, so we avoid that here.
+     */
+
+    function getOptimalDevicePixelRatio() {
+        const dpr = window.devicePixelRatio || 1;
+
+        const isMobile =
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+                .test(navigator.userAgent) ||
+            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
+        /*
+         * Conservative settings for the configurator.
+         *
+         * Desktop:
+         *   maximum 1.25x
+         *
+         * Mobile/tablet:
+         *   maximum 1.0x
+         *
+         * You can later experiment with 1.5 on desktop.
+         */
+
+        if (isMobile) {
+            return Math.min(dpr, 1.0);
+        }
+
+        return Math.min(dpr, 1.25);
+    }
+
+    const optimalDPR = getOptimalDevicePixelRatio();
+
+    console.log(
+        "[Unity] Browser DPR:",
+        window.devicePixelRatio || 1
+    );
+
+    console.log(
+        "[Unity] Unity rendering DPR:",
+        optimalDPR
+    );
+
+
+    /*
+     * ============================================================
+     * UNITY CONFIGURATION
+     * ============================================================
+     */
+
+    const canvas = document.querySelector("#unity-canvas");
+
+    const UNITY_TARGET_OBJECT = "4 Glass long";
+
+
+    /*
+     * ============================================================
+     * JAVASCRIPT -> UNITY MESSAGE MAPPING
+     * ============================================================
+     */
+
+    const METHOD_BY_TYPE = {
+        RearDisplay: "RearDisplayFromJs",
+        SideDisplay: "SideDisplayFromJs",
+        SideGlass: "SideGlassFromJs",
+        PosterFrame: "PosterFrameFromJs",
+        StandingBench: "StandingBenchFromJs",
+        Silluete: "SillueteFromJs"
+    };
+
+
+    /*
+     * ============================================================
+     * MESSAGE QUEUE
+     * ============================================================
+     */
+
+    const queuedMessages = [];
+
+    let unityInstance = null;
+
+
+    /*
+     * ============================================================
+     * SEND MESSAGE TO UNITY
+     * ============================================================
+     */
+
+    function sendToUnity(type, message) {
+        const method = METHOD_BY_TYPE[type];
+
+        if (!method || !unityInstance) {
             return;
-          }
+        }
 
-          const message = { type: event.data.type, message: event.data.message };
+        try {
+            unityInstance.SendMessage(
+                UNITY_TARGET_OBJECT,
+                method,
+                String(message)
+            );
+        } catch (error) {
+            console.error(
+                "Could not send " + type + " to Unity:",
+                error
+            );
+        }
+    }
 
-          if (!unityInstance) {
-            queuedMessages.push(message);
-          } else {
-            sendToUnity(message.type, message.message);
-          }
-        });
 
-        createUnityInstance(document.querySelector("#unity-canvas"), {
-          // Adjust file paths to match your M-Size build files
-          dataUrl: "Build/riga-bus-stop-XL.data",
-          frameworkUrl: "Build/riga-bus-stop-XL.framework.js",
-          codeUrl: "Build/riga-bus-stop-XL.wasm",
-          streamingAssetsUrl: "StreamingAssets",
-          companyName: "DefaultCompany",
-          productName: "Bus Shelter RIGA XL-Size",
-          productVersion: "1.0"
-        })
-          .then(function (instance) {
-            unityInstance = instance;
-            window.unityInstance = instance;
+    /*
+     * ============================================================
+     * RECEIVE MESSAGES FROM PARENT PAGE
+     * ============================================================
+     */
 
-            while (queuedMessages.length > 0) {
-              const queued = queuedMessages.shift();
-              sendToUnity(queued.type, queued.message);
+    window.addEventListener(
+        "message",
+        function (event) {
+
+            if (
+                event.source !== window.parent ||
+                !event.data ||
+                !METHOD_BY_TYPE[event.data.type]
+            ) {
+                return;
             }
 
-            window.parent.postMessage({ type: "UNITY_READY" }, "*");
-          })
-          .catch(function (error) {
-            console.error("Unity failed to load:", error);
-          });
-      }());
-    </script>
-  </body>
+            const message = {
+                type: event.data.type,
+                message: event.data.message
+            };
+
+            if (!unityInstance) {
+                queuedMessages.push(message);
+            } else {
+                sendToUnity(
+                    message.type,
+                    message.message
+                );
+            }
+        }
+    );
+
+
+    /*
+     * ============================================================
+     * CREATE UNITY INSTANCE
+     * ============================================================
+     */
+
+    createUnityInstance(canvas, {
+
+        // Adjust file paths to match your XL-Size build files
+        dataUrl: "Build/riga-bus-stop-XL.data",
+
+        frameworkUrl: "Build/riga-bus-stop-XL.framework.js",
+
+        codeUrl: "Build/riga-bus-stop-XL.wasm",
+
+        streamingAssetsUrl: "StreamingAssets",
+
+        companyName: "DefaultCompany",
+
+        productName: "Bus Shelter RIGA XL-Size",
+
+        productVersion: "1.0",
+
+
+        /*
+         * IMPORTANT
+         *
+         * Unity controls the internal WebGL resolution.
+         *
+         * Do NOT manually modify canvas.width / canvas.height.
+         */
+
+        matchWebGLToCanvasSize: true,
+
+        devicePixelRatio: optimalDPR,
+
+
+        /*
+         * Request hardware antialiasing from WebGL.
+         */
+
+        webglContextAttributes: {
+            antialias: true,
+            powerPreference: "high-performance"
+        }
+
+    })
+
+    .then(function (instance) {
+
+        unityInstance = instance;
+
+        window.unityInstance = instance;
+
+
+        /*
+         * Send all messages that arrived before Unity finished loading.
+         */
+
+        while (queuedMessages.length > 0) {
+
+            const queued = queuedMessages.shift();
+
+            sendToUnity(
+                queued.type,
+                queued.message
+            );
+        }
+
+
+        /*
+         * Tell the parent configurator that Unity is ready.
+         */
+
+        window.parent.postMessage(
+            {
+                type: "UNITY_READY"
+            },
+            "*"
+        );
+
+
+        console.log(
+            "[Unity] Ready. Rendering DPR:",
+            optimalDPR
+        );
+
+    })
+
+    .catch(function (error) {
+
+        console.error(
+            "Unity failed to load:",
+            error
+        );
+
+    });
+
+}());
+</script>
+
+</body>
 </html>
